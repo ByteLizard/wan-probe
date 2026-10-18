@@ -1,0 +1,16 @@
+apiVersion: v2
+name: wan-probe
+description: Per-WAN ISP probing from Kubernetes, steered by DSCP marks the firewall routes on
+type: application
+# Version and appVersion are set at release time from the git tag
+# (release.yaml: helm package --version X.Y.Z --app-version vX.Y.Z).
+version: 0.0.0
+appVersion: "0.0.0"
+home: https://github.com/ByteLizard/wan-probe
+sources:
+  - https://github.com/ByteLizard/wan-probe
+keywords:
+  - monitoring
+  - isp
+  - opnsense
+  - dscp

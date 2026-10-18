@@ -1,0 +1,9 @@
+.git
+.github
+charts
+docs
+tests
+*.md
+config*.json
+__pycache__
+.ruff_cache

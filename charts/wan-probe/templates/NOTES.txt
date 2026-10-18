@@ -1,0 +1,7 @@
+wan-probe {{ .Chart.AppVersion }} is deploying as {{ include "wan-probe.fullname" . }} in {{ .Release.Namespace }}.
+
+Metrics and API:  http://{{ include "wan-probe.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}/metrics
+                  http://{{ include "wan-probe.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}/v1/firewalls
+
+Firewalls configured: {{ len .Values.config.firewalls }}
+Rules: {{ if and .Values.config.rules .Values.config.rules.enabled }}enabled{{ else }}disabled (every WAN leaves on the default route; only presence, first hop and steering_ok are published){{ end }}

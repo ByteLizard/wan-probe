@@ -1,0 +1,22 @@
+{
+  "vm_query_url": "http://vmsingle.victoria-metrics.svc.cluster.local.:8428/api/v1/query",
+  "firewalls": [
+    {
+      "name": "cutlass",
+      "url": "https://10.0.10.1",
+      "node_gateway": "10.0.20.1",
+      "node_interface": "opt2",
+      "node_net": "10.0.20.0/23",
+      "private_alias": "RFC1918_Networks"
+    }
+  ],
+  "targets": {
+    "inet": [
+      {"name": "cloudflare", "address": "1.1.1.1"},
+      {"name": "quad9", "address": "149.112.112.112"},
+      {"name": "google", "address": "8.8.8.8"}
+    ]
+  },
+  "isp_overrides": {"cutlass": {"WAN4": "tfiber"}},
+  "rules": {"enabled": false, "sequence_base": 10}
+}

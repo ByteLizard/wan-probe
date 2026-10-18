@@ -1,0 +1,98 @@
+# Default values for wan-probe.
+
+image:
+  repository: ghcr.io/bytelizard/wan-probe
+  # Defaults to the chart's appVersion.
+  tag: ""
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+# Rendered verbatim to /config/config.json. Every key here overrides the
+# service's built-in defaults (see README "Configuration"). Firewalls and
+# targets are the two you always set.
+config:
+  firewalls: []
+  # targets:
+  #   inet:
+  #     - {name: cloudflare, address: 1.1.1.1}
+  # isp_overrides: {}
+  # rules:
+  #   enabled: false
+  #   sequence_base: 10
+
+logLevel: INFO
+
+# Firewall API credentials, only needed when config.rules.enabled is true.
+# The pod reads WAN_PROBE_<FIREWALL>_API_KEY / _API_SECRET from its
+# environment (firewall name upper-cased, dashes to underscores).
+credentials:
+  # An existing Secret with those keys, loaded with envFrom.
+  existingSecret: ""
+  # Or let External Secrets Operator render one from OpenBao/Vault.
+  externalSecret:
+    enabled: false
+    refreshInterval: 1m
+    secretStoreRef:
+      kind: SecretStore
+      name: openbao
+    # - secretKey: WAN_PROBE_CUTLASS_API_KEY
+    #   remoteRef: {key: wan-probe/cutlass_api_key, property: value}
+    data: []
+
+service:
+  type: ClusterIP
+  port: 9100
+
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}
+
+podAnnotations: {}
+podLabels: {}
+
+# Unprivileged ICMP: SOCK_DGRAM/IPPROTO_ICMP works for any group in this
+# range, so the pod needs no NET_RAW. A safe (namespaced) sysctl.
+sysctls:
+  - name: net.ipv4.ping_group_range
+    value: "0 2147483647"
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 65534
+  runAsGroup: 65534
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    memory: 128Mi
+
+# /livez answers as soon as the process is up; /healthz only after the first
+# successful discovery, so a metrics-store outage at start does not kill the pod.
+livenessProbe:
+  httpGet:
+    path: /livez
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 30
+readinessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  periodSeconds: 15
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+priorityClassName: ""

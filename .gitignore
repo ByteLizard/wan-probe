@@ -1,0 +1,14 @@
+# Secrets never belong in git — in-cluster they render from OpenBao via ESO.
+.env
+*.local
+*.secret
+config.json
+# Editor / OS cruft
+.DS_Store
+.idea/
+.vscode/
+# Python
+__pycache__/
+*.pyc
+.ruff_cache/
+dist/

@@ -1,0 +1,16 @@
+[project]
+name = "wan-probe"
+version = "0.1.0"
+description = "Per-WAN ISP probing from Kubernetes, steered by DSCP marks the firewall routes on"
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "MIT" }
+dependencies = []
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N"]
+ignore = ["N802"]  # http.server's do_GET

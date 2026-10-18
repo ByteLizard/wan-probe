@@ -1,0 +1,58 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # Lint + unit tests on the in-cluster ARC runners (no GitHub-hosted minutes
+  # for the frequent jobs). The service is stdlib-only: no dependency install.
+  python:
+    runs-on: homelab
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: "3.15"
+      - run: pip install --quiet ruff==0.16.10
+      - run: ruff check .
+      - run: python3 -m compileall -q wan_probe
+      - run: python3 -m unittest discover -s tests -v
+
+  chart:
+    runs-on: homelab
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: azure/setup-helm@v4
+      - run: helm lint charts/wan-probe
+      - run: helm template wan-probe charts/wan-probe --set image.tag=ci > /dev/null
+      - run: |
+          helm template wan-probe charts/wan-probe --set image.tag=ci \
+            --set credentials.externalSecret.enabled=true \
+            --set 'credentials.externalSecret.data[0].secretKey=WAN_PROBE_CUTLASS_API_KEY' \
+            --set 'credentials.externalSecret.data[0].remoteRef.key=wan-probe/cutlass_api_key' \
+            --set 'credentials.externalSecret.data[0].remoteRef.property=value' > /dev/null
+
+  # Image smoke build on GitHub-hosted: buildx works out of the box there and
+  # the ARC runners' Docker capability is unproven. No push on PRs.
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
