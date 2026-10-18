@@ -14,6 +14,7 @@ from wan_probe import (
     config,  # noqa: E402
     discovery,  # noqa: E402
     dscp,  # noqa: E402
+    events,  # noqa: E402
     isp,  # noqa: E402
     metrics,  # noqa: E402
     opnsense,  # noqa: E402
