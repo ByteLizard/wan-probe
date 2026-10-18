@@ -11,7 +11,7 @@ import logging
 import os
 import time
 
-from . import __version__, api, config, isp, opnsense, series
+from . import __version__, api, config, events, isp, opnsense, series
 from . import discovery as discovery_mod
 from . import prober as prober_mod
 
@@ -49,7 +49,7 @@ def reconcile_rules(cfg, disc, entries, clients):
             series.rules_in_sync.set(1, firewall_name)
             series.rules_managed.set(managed, firewall_name)
         except Exception as exc:  # noqa: BLE001 — surface, keep probing
-            log.error("%s: rule reconcile failed: %s", firewall_name, exc)
+            events.emit("rules_reconcile_failed", firewall=firewall_name, error=str(exc))
             series.rules_in_sync.set(0, firewall_name)
 
 
@@ -94,7 +94,8 @@ def main():
                 old = probers.pop(key)
                 steering.forget(key)
                 series.drop_entry({"firewall": key[0], "wan": key[1], "family": key[2]})
-                log.info("%s/%s removed", old.entry.firewall, old.entry.wan)
+                events.emit("wan_removed", firewall=old.entry.firewall, wan=old.entry.wan, family=old.entry.family,
+                            gateway=old.entry.gateway)
         for key, entry in wanted.items():
             fw_cfg = config.firewall(cfg, entry.firewall) or dict(config.FIREWALL_DEFAULTS, name=entry.firewall)
             targets = disc.targets_for(entry.firewall, cfg["targets"].get(entry.family, []))
@@ -108,8 +109,9 @@ def main():
                 probers[key] = prober_mod.Prober(entry, targets, cfg, steering, siblings_of(entry.firewall),
                                                  fw_cfg, identify_for(entry.firewall, entry.wan))
                 probers[key].start()
-                log.info("%s/%s probing via %s (%s, tos 0x%02x) targets=%s", entry.firewall, entry.wan,
-                         entry.gateway, entry.dscp_name, entry.tos, [t["name"] for t in targets])
+                events.emit("wan_added", firewall=entry.firewall, wan=entry.wan, family=entry.family,
+                            gateway=entry.gateway, dscp=entry.dscp_name, tos=f"0x{entry.tos:02x}",
+                            interface=entry.iface_key, device=entry.device, targets=[t["name"] for t in targets])
             series.wan_present.clear_where(
                 lambda lab, e=entry: (lab["firewall"] == e.firewall and lab["wan"] == e.wan
                                       and lab["family"] == e.family))

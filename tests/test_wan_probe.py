@@ -276,6 +276,24 @@ class ProberHelperTests(unittest.TestCase):
         self.assertTrue(st.ok(wan1, entries))
 
 
+class EventTests(unittest.TestCase):
+    def test_emit_is_flat_json_without_none(self):
+        import json
+        import logging
+        captured = []
+        handler = logging.Handler()
+        handler.emit = lambda record: captured.append(record.getMessage())
+        events.log.addHandler(handler)
+        self.addCleanup(events.log.removeHandler, handler)
+        events.log.setLevel(logging.INFO)
+        record = events.emit("wan_added", firewall="cutlass", wan="WAN4", previous=None, tos="0x80")
+        self.assertEqual(record["event"], "wan_added")
+        self.assertNotIn("previous", record)
+        parsed = json.loads(captured[-1])
+        self.assertEqual(parsed["wan"], "WAN4")
+        self.assertIn("ts", parsed)
+
+
 class ConfigTests(unittest.TestCase):
     def test_credentials_from_env(self):
         env = {"WAN_PROBE_CUTLASS_API_KEY": "k", "WAN_PROBE_CUTLASS_API_SECRET": "s"}

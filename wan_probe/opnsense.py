@@ -14,6 +14,8 @@ import logging
 import ssl
 import urllib.request
 
+from . import events
+
 log = logging.getLogger("wan-probe.rules")
 
 TAG = "wan-probe:"
@@ -106,14 +108,17 @@ class Reconciler:
         to_add, to_delete = plan(desired, actual)
         for uuid in to_delete:
             self.client.call(f"/api/firewall/filter/delRule/{uuid}", {})
-            log.info("%s: deleted rule %s", self.firewall, uuid)
+            events.emit("rule_deleted", firewall=self.firewall, uuid=uuid,
+                        description=next((d for d, u in actual.items() if u == uuid), None))
         for description in to_add:
             resp = self.client.call("/api/firewall/filter/addRule", {"rule": desired[description]})
             if resp.get("result") != "saved":
                 raise RuntimeError(f"addRule rejected: {resp}")
-            log.info("%s: added rule %s", self.firewall, description)
+            events.emit("rule_added", firewall=self.firewall, uuid=resp.get("uuid"), description=description,
+                        gateway=desired[description]["gateway"], tos=desired[description]["tos"])
         changed = bool(to_add or to_delete)
         if changed:
             resp = self.client.call("/api/firewall/filter/apply", {})
-            log.info("%s: applied filter rules: %s", self.firewall, resp)
+            events.emit("rules_applied", firewall=self.firewall, added=len(to_add), deleted=len(to_delete),
+                        result=resp.get("status", resp))
         return changed, len(self.list_owned()) if changed else len(actual)

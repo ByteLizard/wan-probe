@@ -18,7 +18,7 @@ import struct
 import threading
 import time
 
-from . import series
+from . import events, series
 
 log = logging.getLogger("wan-probe.prober")
 
@@ -161,7 +161,8 @@ class Steering:
             previous = self._first_hop.get(entry.key)
             self._first_hop[entry.key] = address
         if previous != address:
-            log.info("%s/%s first hop %s -> %s", entry.firewall, entry.wan, previous, address)
+            events.emit("first_hop_changed", firewall=entry.firewall, wan=entry.wan, family=entry.family,
+                        previous=previous, first_hop=address)
 
     def forget(self, key):
         with self._lock:
@@ -199,6 +200,7 @@ class Prober(threading.Thread):
         self._last_trace = 0.0
         self._last_identify = 0.0
         self._published = False
+        self._last_ok = None
 
     @property
     def labels(self):
@@ -226,6 +228,10 @@ class Prober(threading.Thread):
 
     def _publish_state(self):
         ok = self.steered()
+        if ok != self._last_ok:
+            events.emit("steering_changed", firewall=self.entry.firewall, wan=self.entry.wan,
+                        family=self.entry.family, steering_ok=ok, first_hop=self.steering.first_hop(self.entry.key))
+            self._last_ok = ok
         series.steering_ok.set(1 if ok else 0, *self.labels)
         hop = self.steering.first_hop(self.entry.key)
         series.first_hop.clear_where(self._mine())
@@ -242,6 +248,8 @@ class Prober(threading.Thread):
             return
         old = {"firewall": self.entry.firewall, "wan": self.entry.wan, "family": self.entry.family, "isp": self.isp}
         series.drop_entry(old)
+        events.emit("isp_changed", firewall=self.entry.firewall, wan=self.entry.wan, family=self.entry.family,
+                    previous=self.isp, isp=slug, address=self.identity.get("address"), asn=self.identity.get("asn"))
         self.isp = slug
         self._published = False
 
