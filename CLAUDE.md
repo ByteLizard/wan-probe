@@ -42,8 +42,11 @@ Read [README.md](README.md) for what it does and how it is configured.
   Operator through the chart's `credentials.externalSecret`. Never commit values.
 
 ## CI
-`ci.yaml`: ruff + unit tests and `helm lint`/`helm template` on
-`runs-on: homelab`; the buildx smoke build on `ubuntu-latest`.
+`ci.yaml`: ruff + unit tests, `helm lint`/`helm template`, and the buildx
+smoke build, all on `ubuntu-latest`. This repo is public, so GitHub-hosted
+minutes are free for it, and the org's self-hosted runner group refuses
+public repositories (a fork PR could run code on the homelab runners);
+`runs-on: homelab` is for the private repos.
 `release.yaml`: push to `main` publishes `:main` and `:sha-*` images; a `v*`
 tag publishes semver image tags and the chart at the same version. Release =
 `git tag v0.x.y && git push --tags`; Renovate PRs the bump into kube-apps.

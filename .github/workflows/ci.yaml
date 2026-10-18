@@ -9,10 +9,13 @@ permissions:
   contents: read
 
 jobs:
-  # Lint + unit tests on the in-cluster ARC runners (no GitHub-hosted minutes
-  # for the frequent jobs). The service is stdlib-only: no dependency install.
+  # This repo is PUBLIC: GitHub-hosted minutes are free for it, and the org's
+  # self-hosted runner group refuses public repositories (a fork PR could run
+  # code on the homelab runners). So everything runs on ubuntu-latest here;
+  # the homelab runners are for the private repos.
+  # The service is stdlib-only: no dependency install.
   python:
-    runs-on: homelab
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
         with:
@@ -26,7 +29,7 @@ jobs:
       - run: python3 -m unittest discover -s tests -v
 
   chart:
-    runs-on: homelab
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
         with:
@@ -41,8 +44,7 @@ jobs:
             --set 'credentials.externalSecret.data[0].remoteRef.key=wan-probe/cutlass_api_key' \
             --set 'credentials.externalSecret.data[0].remoteRef.property=value' > /dev/null
 
-  # Image smoke build on GitHub-hosted: buildx works out of the box there and
-  # the ARC runners' Docker capability is unproven. No push on PRs.
+  # Image smoke build; no push on PRs.
   image:
     runs-on: ubuntu-latest
     steps:
